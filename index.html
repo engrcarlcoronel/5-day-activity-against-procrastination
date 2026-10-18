@@ -1,0 +1,1289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dungeon of Mamaya Na</title>
+<style>
+:root{
+  --bg:#0d131a; --panel:#1a2633; --line:#47607a;
+  --ink:#f7f3e8; --muted:#a9b8c6; --gold:#ffd166; --mint:#8cf0c5;
+  --pink:#ff9fbd; --blue:#94ceff; --red:#ff7b7b;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(circle at 50% -10%,#1d2c3b,var(--bg) 60%);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+.wrap{max-width:760px;margin:auto;padding:14px}
+.muted{color:var(--muted)}
+.hidden{display:none!important}
+button{font:inherit;cursor:pointer;color:inherit}
+
+/* TOP BAR */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 10px}
+.brand{font-weight:900;letter-spacing:.08em;font-size:.75rem;color:var(--gold)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:#0f1923;border:2px solid #3a5066;padding:3px 9px;font-size:.75rem;font-weight:800;border-radius:999px;white-space:nowrap}
+.chip b{color:var(--gold)}
+
+/* PANEL */
+.panel{background:linear-gradient(180deg,#223244,var(--panel));border:3px solid #536a80;box-shadow:5px 5px 0 #05090d;padding:16px;border-radius:6px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tag{display:inline-block;color:var(--gold);border:2px solid #a98742;padding:2px 7px;font-size:.66rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+h1,h2{margin:0}
+#roomTitle{font-size:1.35rem;line-height:1.15}
+.pill{background:#30465a;border:1px solid #6d879e;padding:4px 9px;font-size:.7rem;font-weight:800;border-radius:999px;white-space:nowrap}
+.progress{height:8px;background:#0f1923;border:2px solid #3a5066;margin:12px 0 4px;border-radius:99px;overflow:hidden}
+.progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--mint),var(--gold));transition:width .5s}
+
+/* MAZE BOARD */
+.maze{display:flex;flex-direction:column;gap:6px;margin:12px 0;padding:8px;background:#0f1923;border:2px solid #3a5066;border-radius:6px}
+.room{border:2px solid #2c4054;border-radius:6px;padding:6px 6px 7px;background:#121e29;transition:opacity .3s,border-color .3s}
+.room.locked{opacity:.45}
+.room.done{opacity:.6;border-color:#2e5a4c}
+.room.current{border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,209,102,.18)}
+.room-label{display:flex;justify-content:space-between;font-size:.62rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 2px 5px}
+.room.current .room-label{color:var(--gold)}
+.tiles{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.room.flip .tiles{direction:rtl}
+.room.flip .tile{direction:ltr}
+.tile{aspect-ratio:1;border:2px solid #3b5268;background:#18242f;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.58rem;color:#a7b8c8;position:relative;line-height:1.1}
+.tile .ic{font-size:1.05rem}
+.tile.visited{background:#1d3a3a;border-color:#3b7a68}
+.tile.player{background:#2b5560;border-color:#fff;transform:scale(1.1);z-index:2;box-shadow:0 0 12px rgba(140,240,197,.45)}
+.tile.player .ic{animation:bob .7s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-3px)}}
+
+/* DICE */
+.dicebox{display:flex;align-items:center;gap:14px;margin:12px 0 6px}
+.die{width:62px;height:62px;flex-shrink:0;background:#f7f3e8;border:3px solid #c8d1d6;border-radius:12px;box-shadow:0 4px 0 #9aa7ae;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:8px;gap:2px}
+.die i{border-radius:50%;background:transparent;margin:2px}
+.die i.on{background:#182330}
+.die .q{grid-area:1/1/4/4;display:grid;place-items:center;font-size:1.7rem;color:#182330;font-weight:900}
+.die.big .q{font-size:3rem}
+.die.roll{animation:shake .45s linear infinite}
+@keyframes shake{25%{transform:rotate(14deg) scale(.92)}50%{transform:rotate(-14deg) scale(1.08)}75%{transform:rotate(9deg) scale(1)}}
+#rollLabel{font-size:1rem}
+
+/* BUTTONS */
+.primary{background:var(--gold);color:#201b10;border:0;border-bottom:4px solid #b4842c;font-weight:900;padding:11px 14px;width:100%;margin-top:6px;border-radius:5px;transition:transform .08s}
+.primary:active:not(:disabled){transform:translateY(2px);border-bottom-width:2px}
+.secondary{background:transparent;border:2px solid #647a8d;padding:9px 12px;width:100%;margin-top:6px;border-radius:5px}
+.secondary:hover:not(:disabled){border-color:var(--gold)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.link{background:none;border:0;color:var(--muted);font-size:.75rem;text-decoration:underline;padding:4px;cursor:pointer}
+
+/* BANNER */
+.banner{padding:11px 12px;margin:10px 0;border-left:5px solid var(--pink);background:#352738;border-radius:0 6px 6px 0;animation:pop .3s ease-out}
+.banner.scroll{border-color:var(--blue);background:#1e353f}
+.banner.loot{border-color:var(--gold);background:#3a3322}
+.banner.win{border-color:var(--mint);background:#1e3a32}
+.banner .lbl{font-weight:900;font-size:.8rem;letter-spacing:.03em}
+.banner .txt{display:block;margin-top:3px;font-size:.95rem}
+.banner .tip{display:block;margin-top:6px;font-size:.8rem;color:var(--muted)}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}}
+
+/* TASK */
+.task{margin-top:10px}
+.task label{display:block;font-size:.72rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.task input{width:100%;background:#0f1923;border:2px solid #3a5066;color:var(--ink);padding:9px 10px;border-radius:5px;font:inherit}
+.task input:focus{outline:none;border-color:var(--gold)}
+#status{font-size:.85rem;margin:10px 0 0;min-height:1.3em}
+.foot{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
+
+/* VICTORY */
+#victory{text-align:center;padding:10px 0 4px}
+#victory h2{color:var(--gold);margin:6px 0}
+.wins{text-align:left;background:#0f1923;border:2px solid #3a5066;border-radius:6px;padding:10px 14px;margin:12px 0;font-size:.88rem}
+.wins h3{margin:0 0 6px;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.wins ul{margin:0;padding-left:18px}
+
+/* INTRO */
+#introScreen{position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#18283a,#090e14);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.pisonet-box{background:var(--panel);border:3px solid var(--gold);box-shadow:6px 6px 0 #000;padding:26px 24px;max-width:380px;width:100%;text-align:center;border-radius:8px}
+.pisonet-box h1{color:var(--gold);font-size:1.5rem;margin:8px 0 2px;letter-spacing:.04em}
+.slot{width:70px;height:92px;margin:14px auto 8px;background:#0b1118;border:3px solid #3a5066;border-radius:10px;position:relative;overflow:hidden}
+.slot::after{content:"";position:absolute;left:50%;top:44px;width:34px;height:5px;background:#000;transform:translateX(-50%);border-radius:3px}
+.coin{position:absolute;left:50%;top:-34px;transform:translateX(-50%);font-size:1.9rem;opacity:0}
+.coin.drop{animation:drop .7s ease-in forwards}
+@keyframes drop{0%{top:-34px;opacity:1}70%{top:30px;opacity:1}100%{top:46px;opacity:0}}
+.blink{animation:blink 1.1s steps(2) infinite;color:var(--mint);font-weight:800;font-size:.85rem}
+@keyframes blink{50%{opacity:.25}}
+
+/* POPUP MODAL */
+#modal,#diceModal{position:fixed;inset:0;background:rgba(5,9,13,.82);display:flex;align-items:center;justify-content:center;padding:18px;z-index:9600}
+#diceModal{z-index:9650}
+.die.big{width:116px;height:116px;padding:16px;gap:4px;border-radius:22px;margin:6px auto 14px;box-shadow:0 6px 0 #9aa7ae}
+.die.big i{margin:3px}
+
+/* REAL COIN ICON */
+.cn{display:inline-flex;align-items:center;justify-content:center;width:1.3em;height:1.3em;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffd166 45%,#c28a1e);border:2px solid #8a5f10;color:#5a3b05;font-weight:900;font-size:.82em;line-height:1;vertical-align:-.22em;box-shadow:inset 0 0 0 2px rgba(255,255,255,.28)}
+.coin .cn{font-size:1.7rem}
+
+/* PLAYER SETUP */
+.field{text-align:left;margin:10px 0 4px}
+.field label{display:block;font-size:.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.field input{width:100%;background:#0f1923;border:2px solid #3a5066;color:var(--ink);padding:10px 11px;border-radius:5px;font:inherit}
+.field input:focus{outline:none;border-color:var(--gold)}
+.gbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.gbtn{background:transparent;border:2px solid #647a8d;border-radius:6px;padding:8px 4px;font-size:.78rem;line-height:1.25;text-align:center}
+.gbtn .av{display:block;font-size:1.7rem}
+.gbtn.active{border-color:var(--gold);background:#2a3a2c;box-shadow:0 0 0 2px rgba(255,209,102,.2)}
+.mcard{background:linear-gradient(180deg,#26384b,#1a2633);border:3px solid var(--gold);box-shadow:6px 6px 0 #000;border-radius:10px;padding:22px 20px;max-width:360px;width:100%;text-align:center;animation:popin .28s cubic-bezier(.2,1.4,.4,1)}
+@keyframes popin{from{opacity:0;transform:scale(.8)}}
+.mcard .mi{font-size:3.4rem;line-height:1.1}
+.mcard h2{color:var(--gold);font-size:1.15rem;letter-spacing:.05em;margin:6px 0 6px}
+.mcard p{margin:0 0 12px;font-size:.95rem;white-space:pre-line}
+.mcard .chips{justify-content:center;margin-bottom:6px}
+
+/* BATTLE */
+#battle{position:fixed;inset:0;background:#05090d;z-index:9500;overflow-y:auto;display:flex;padding:10px}
+.bwrap{width:100%;max-width:560px;margin:auto}
+.arena{position:relative;height:300px;border:3px solid #536a80;border-radius:8px;overflow:hidden;background:linear-gradient(#2a4a6b 0 54%,#2f6048 54%)}
+.arena.shake{animation:ashake .35s}
+@keyframes ashake{20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+.pad{position:absolute;width:160px;height:34px;border-radius:50%;background:rgba(0,0,0,.28)}
+.pad.foe{right:14px;top:132px}
+.pad.me{left:8px;bottom:22px}
+.sprite{position:absolute;line-height:1;transition:transform .8s,opacity .8s}
+.sprite.foe{right:52px;top:62px;font-size:4.6rem;animation:float 1.6s ease-in-out infinite alternate}
+.sprite.me{left:40px;bottom:36px;font-size:3.8rem}
+@keyframes float{to{transform:translateY(-6px)}}
+.sprite.hit{animation:hitflash .45s}
+@keyframes hitflash{0%,100%{transform:translateX(0);opacity:1}20%{transform:translateX(-10px);opacity:.3}40%{transform:translateX(10px);opacity:1}60%{transform:translateX(-8px);opacity:.3}80%{transform:translateX(6px);opacity:1}}
+.sprite.faint{transform:translateY(60px);opacity:0;animation:none}
+.hpbox{position:absolute;background:#f4f0e0;color:#222;border:3px solid #333;border-radius:8px;padding:5px 10px 7px;font-size:.72rem;font-weight:800;min-width:158px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.hpbox.foe{left:10px;top:10px}
+.hpbox.me{right:10px;bottom:14px}
+.hpbox .nm{display:flex;justify-content:space-between;gap:8px;text-transform:uppercase}
+.hpbox .nm span:last-child{color:#a0522d}
+.hpbar{height:9px;background:#555;border-radius:5px;margin-top:4px;overflow:hidden;border:1px solid #333}
+.hpbar i{display:block;height:100%;width:100%;background:#4cd964;transition:width .5s,background .3s}
+.hpbox .num{text-align:right;font-size:.65rem;margin-top:2px}
+.dlg{margin-top:8px;min-height:86px;background:#f4f0e0;color:#1c1c1c;border:4px solid #333;border-radius:8px;padding:11px 36px 11px 14px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92rem;line-height:1.45;position:relative;cursor:pointer;user-select:none}
+.dlg .nx{position:absolute;right:12px;bottom:8px;animation:blink 1s steps(2) infinite}
+#moves{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.move{background:#1b2734;border:2px solid #647a8d;border-radius:6px;padding:9px 10px;text-align:left;font-size:.8rem;line-height:1.3}
+.move:hover:not(:disabled){border-color:var(--gold);background:#243649}
+.move.used{text-decoration:line-through;opacity:.35}
+.move.hintbtn{grid-column:1/-1;text-align:center;border-style:dashed;color:var(--gold)}
+
+.sprite svg,.dexico svg{display:block;width:1em;height:.8em;overflow:visible}
+.sprite.foe svg{width:1.35em;height:1.08em;margin:-.1em 0 0 -.2em}
+
+/* lock timer */
+.lockcard{margin:12px 0;padding:16px 14px;text-align:center;background:linear-gradient(180deg,#2a2f45,#1c2233);border:2px solid #5a6ea0;border-radius:10px}
+.lockcard .lk{font-size:.7rem;font-weight:900;letter-spacing:.14em;color:var(--blue)}
+.lockcard .lt{font:900 2.5rem/1.1 ui-monospace,Menlo,Consolas,monospace;color:var(--gold);margin:6px 0 6px;font-variant-numeric:tabular-nums}
+
+/* reward pack + shiny card */
+#cardOverlay{position:fixed;inset:0;z-index:9700;background:radial-gradient(circle at 50% 30%,#1c2a44,#070b12 70%);overflow-y:auto;display:flex;padding:18px}
+.co-inner{margin:auto;width:100%;max-width:380px;text-align:center}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9800}
+#flash.go{animation:fl .55s ease-out}
+@keyframes fl{0%{opacity:0}30%{opacity:.95}100%{opacity:0}}
+.pulse{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(255,209,102,.25)}}
+.pack{position:relative;width:190px;height:270px;margin:0 auto;border-radius:14px;cursor:pointer;overflow:hidden;color:#2a1a05;display:grid;place-items:center;background:linear-gradient(160deg,#ffe27a,#ff9a3c 45%,#e0457b);box-shadow:0 16px 44px rgba(0,0,0,.6),inset 0 0 0 3px rgba(255,255,255,.55);transition:transform .35s,opacity .35s}
+.pack::before,.pack::after{content:"";position:absolute;left:0;right:0;height:16px;background:repeating-linear-gradient(90deg,rgba(0,0,0,.28) 0 4px,transparent 4px 8px)}
+.pack::before{top:0}.pack::after{bottom:0}
+.pk-foil{position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.65) 48%,transparent 66%);background-size:250% 100%;animation:pk 2.8s linear infinite}
+@keyframes pk{from{background-position:150% 0}to{background-position:-50% 0}}
+.pk-label{position:relative;display:flex;flex-direction:column;gap:2px;align-items:center}
+.pk-label b{font-size:1.5rem;letter-spacing:.08em}
+.pk-label small{font-size:.62rem;font-weight:800;letter-spacing:.2em}
+.pk-star{font-size:2.6rem;line-height:1}
+.pack.shake{animation:pshake .12s linear infinite}
+@keyframes pshake{25%{transform:rotate(-4deg) scale(1.04)}75%{transform:rotate(4deg) scale(1.04)}}
+.pack.burst{transform:scale(1.5);opacity:0}
+.cardwrap{position:relative;display:flex;justify-content:center;perspective:800px}
+.cardwrap.reveal .pc{animation:reveal .9s cubic-bezier(.2,1.1,.3,1)}
+@keyframes reveal{from{opacity:0;transform:rotateY(100deg) scale(.6)}}
+.bit{position:absolute;left:50%;top:45%;font-style:normal;color:#fff6c2;text-shadow:0 0 8px #ffd166;pointer-events:none;animation:bit 1.2s ease-out forwards}
+@keyframes bit{to{transform:translate(var(--dx),var(--dy)) scale(.4);opacity:0}}
+
+.pc{--mx:50%;--my:30%;position:relative;width:min(88vw,330px);aspect-ratio:5/7;border-radius:16px;padding:8px;text-align:left;color:#fff;overflow:hidden;background:linear-gradient(145deg,#fff3b0,#e0a62a 38%,#fff0a0 62%,#c88a14);box-shadow:0 18px 44px rgba(0,0,0,.6),0 0 46px var(--c1);transition:transform .15s}
+.pc-in{position:relative;height:100%;border-radius:10px;padding:8px 9px 7px;display:flex;flex-direction:column;gap:5px;overflow:hidden;background:linear-gradient(165deg,var(--c1) -30%,var(--c2) 38%,#0d1320 118%)}
+.pc-tier{font-size:.55rem;font-weight:900;letter-spacing:.14em;color:#fff6c2;text-shadow:0 0 6px rgba(0,0,0,.5)}
+.pc-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pc-name{font-size:1.15rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.pc-hp{font-weight:900;font-size:1rem;color:#fff6c2;white-space:nowrap}
+.pc-hp small{font-size:.55rem;margin-right:2px}
+.pc-art{position:relative;flex:1 1 auto;min-height:0;border-radius:8px;border:3px solid #f3d27a;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.8),rgba(255,255,255,0) 52%),linear-gradient(180deg,var(--c1),var(--c2))}
+.pc-art svg{position:relative;z-index:2;height:96%;width:auto;display:block}
+.rays{position:absolute;inset:-45%;background:repeating-conic-gradient(from 0deg at 50% 60%,rgba(255,255,255,.24) 0 8deg,transparent 8deg 18deg);animation:spin 46s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pc-type{position:absolute;top:6px;right:6px;z-index:3;background:rgba(0,0,0,.45);border:2px solid #fff6c2;border-radius:99px;font-size:.55rem;font-weight:900;letter-spacing:.1em;padding:2px 8px}
+.sp{position:absolute;z-index:1;font-style:normal;color:#fff;text-shadow:0 0 8px #fff;animation:tw 1.8s ease-in-out infinite alternate}
+.sp.s1{left:11%;top:16%;font-size:1.1rem}.sp.s2{right:14%;top:44%;font-size:.8rem;animation-delay:.6s}.sp.s3{left:18%;bottom:30%;font-size:.9rem;animation-delay:1.1s}
+@keyframes tw{from{opacity:.25;transform:scale(.7)}to{opacity:1;transform:scale(1.15)}}
+.pc-ribbon{align-self:center;padding:2px 18px;font-size:.62rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#fff6c2;background:linear-gradient(90deg,transparent,rgba(0,0,0,.5) 14%,rgba(0,0,0,.5) 86%,transparent)}
+.pc-moves{display:flex;flex-direction:column;gap:4px}
+.pc-move{display:grid;grid-template-columns:1fr auto;column-gap:8px;align-items:center;background:rgba(0,0,0,.3);border-radius:6px;padding:4px 8px}
+.mv-n{font-weight:900;font-size:.78rem;grid-column:1}
+.mv-d{font-size:.58rem;opacity:.88;grid-column:1;line-height:1.25}
+.mv-dmg{grid-column:2;grid-row:1/3;font-size:1.15rem;color:#fff6c2}
+.pc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:.48rem;text-transform:uppercase;letter-spacing:.06em;text-align:center}
+.pc-stats span{background:rgba(0,0,0,.3);border-radius:5px;padding:3px 0}
+.pc-stats b{display:block;font-size:.9rem;letter-spacing:0;color:#fff6c2}
+.pc-flavor{font-size:.62rem;font-style:italic;text-align:center;opacity:.95}
+.pc-foot{display:flex;justify-content:space-between;gap:6px;font-size:.48rem;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.foil,.sparkle,.shine{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
+.foil{mix-blend-mode:color-dodge;opacity:.5;background-size:260% 260%;animation:foilmove 7s ease-in-out infinite alternate}
+@keyframes foilmove{from{background-position:0% 0%}to{background-position:100% 100%}}
+.foil-rainbow .foil{background-image:linear-gradient(115deg,#ff2d95,#ffd400,#2dffb2,#2d9bff,#b02dff,#ff2d95)}
+.foil-galaxy .foil{background-image:linear-gradient(115deg,#3a1c9e,#c23bff,#2d6bff,#ff5bd8,#3a1c9e)}
+.foil-gold .foil{background-image:linear-gradient(115deg,#fff1a8,#ffb300,#fff8d6,#e08a00,#fff1a8)}
+.foil-aurora .foil{background-image:linear-gradient(115deg,#00ffb2,#00a3ff,#7dffea,#7a5bff,#00ffb2)}
+.sparkle{opacity:.55;mix-blend-mode:screen;background-image:radial-gradient(circle,#fff 0 1px,transparent 2px),radial-gradient(circle,#fff 0 1.5px,transparent 3px);background-size:38px 38px,61px 61px;background-position:0 0,17px 23px;animation:tw2 2.4s ease-in-out infinite alternate}
+@keyframes tw2{from{opacity:.25}to{opacity:.75}}
+.tier-2 .sparkle{opacity:.7}.tier-2 .foil{opacity:.58}
+.tier-3 .sparkle{opacity:.85;background-size:26px 26px,44px 44px}.tier-3 .foil{opacity:.68}
+.shine{background:radial-gradient(circle at var(--mx) var(--my),rgba(255,255,255,.6),rgba(255,255,255,0) 45%);mix-blend-mode:overlay}
+.pc::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.6) 50%,transparent 65%);transform:translateX(-120%);animation:sweep 3.8s ease-in-out infinite}
+@keyframes sweep{0%,55%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.devbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:12px}
+.devbar select{background:#0f1923;color:var(--ink);border:2px solid #3a5066;border-radius:5px;padding:4px 6px;font:inherit;font-size:.78rem}
+@media (prefers-reduced-motion:reduce){.rays,.foil,.sparkle,.pc::after,.pack.shake,.pk-foil,.sp,.pulse{animation:none}}
+@media (max-width:480px){
+  .tile .ic{font-size:.9rem}.tile .n{font-size:.5rem}
+  #roomTitle{font-size:1.15rem}
+  .arena{height:260px}
+  .sprite.foe{font-size:3.8rem;top:56px;right:34px}
+  .pad.foe{top:116px}
+  .sprite.me{font-size:3.2rem}
+}
+@media (max-width:370px){#moves{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- PISONET INTRO -->
+<div id="introScreen">
+  <div class="pisonet-box">
+    <div class="tag">PISONET ARCADE SYSTEM</div>
+    <h1>DUNGEON OF<br>MAMAYA NA</h1>
+    <div class="muted" style="font-size:.85rem">A 5-day fight against procrastination</div>
+    <div class="slot"><div class="coin" id="coin"><span class="cn">₱</span></div></div>
+
+    <div id="stageCoin">
+      <div class="blink" id="coinStatus">INSERT ₱5 TO START</div>
+      <button class="primary" id="insertCoinBtn" style="margin-top:12px"><span class="cn">₱</span> INSERT ₱5</button>
+    </div>
+
+    <div id="stageMenu" class="hidden">
+      <div style="color:var(--mint);font-weight:800;font-size:.85rem;margin-bottom:6px">Coin accepted. Pick a mode.</div>
+      <button class="primary hidden" id="menuContinueBtn">▶ CONTINUE</button>
+      <button class="secondary" id="menuNewGame">✨ NEW GAME</button>
+    </div>
+
+    <div id="stageProfile" class="hidden">
+      <div style="color:var(--mint);font-weight:800;font-size:.85rem">Player select</div>
+      <div class="field">
+        <label for="nameInput">Your name</label>
+        <input id="nameInput" maxlength="14" placeholder="Enter your name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Pick your hero</label>
+        <div class="gbtns" id="gBtns">
+          <button type="button" class="gbtn" data-g="boy"><span class="av">👨‍💻</span>Boy</button>
+          <button type="button" class="gbtn" data-g="girl"><span class="av">👩‍💻</span>Girl</button>
+          <button type="button" class="gbtn active" data-g="neutral"><span class="av">🧑‍💻</span>Rather not say</button>
+        </div>
+      </div>
+      <button class="primary" id="profileStartBtn" disabled>▶ START GAME</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">✦ PROJECT MOMENTUM</div>
+    <div class="chips">
+      <span class="chip" id="playerChip"></span>
+      <span class="chip">Momentum <b id="momentumChip">0</b></span>
+      <span class="chip"><span class="cn">₱</span> <b id="coinChip">0</b></span>
+    </div>
+  </div>
+
+  <main class="panel">
+    <div class="head">
+      <div>
+        <div class="tag" id="dayTag">DAY 1</div>
+        <h2 id="roomTitle">Gate of Mamaya Na</h2>
+        <div class="muted" id="roomSub" style="font-size:.85rem;margin-top:2px"></div>
+      </div>
+      <div class="pill" id="posPill">CHECKPOINT 1 / 5</div>
+    </div>
+    <div class="progress"><i id="progressBar"></i></div>
+
+    <div class="maze" id="maze"></div>
+
+    <div id="travelSection">
+      <div class="banner" id="banner">
+        <span class="lbl" id="bLabel"></span>
+        <span class="txt" id="bText"></span>
+        <span class="tip" id="bTip"></span>
+      </div>
+
+      <div class="lockcard hidden" id="lockCard">
+        <div class="lk">⏳ NEXT DAY UNLOCKS IN</div>
+        <div class="lt" id="lockTime">06:00:00</div>
+        <div class="muted" id="lockSub" style="font-size:.8rem"></div>
+      </div>
+
+      <div class="dicebox" id="diceBox">
+        <div class="die" id="die"></div>
+        <div>
+          <b id="rollLabel">Ready?</b>
+          <div class="muted" id="rollHint" style="font-size:.8rem">One roll per day. After you play a day, the next one unlocks 6 hours later.</div>
+        </div>
+      </div>
+
+      <div class="task" id="taskBox">
+        <label for="taskInput">What do you want to achieve today?</label>
+        <input id="taskInput" maxlength="80" placeholder="e.g. Finish the first page of the report" autocomplete="off">
+        <div class="muted" style="font-size:.74rem;margin-top:5px">Optional. Keep it small. Your five goals are listed on the victory screen.</div>
+      </div>
+
+      <button class="primary" id="rollBtn">🎲 Roll &amp; Advance</button>
+      <button class="secondary" id="continueBtn" disabled>✅ I made progress. End the day</button>
+      
+      <p id="status" class="muted"></p>
+      <div class="foot">
+        
+        <button class="link" id="helpBtn">📖 How to play</button>
+        <button class="link" id="homeBtn">⏏ Back to menu</button>
+      </div>
+    </div>
+
+    <div id="victory" class="hidden">
+      <div style="font-size:3.4rem">🏆</div>
+      <h2 id="vTitle">YOU BEAT MAMAYA NA</h2>
+      <p class="muted" style="margin:4px 0">Five days done. It didn't have to be perfect. You started, and you kept going.</p>
+      <div class="wins">
+        <h3>Your five goals</h3>
+        <ul id="winsList"></ul>
+      </div>
+      <div class="chips" style="justify-content:center">
+        <span class="chip">Momentum <b id="vMomentum">0</b></span>
+        <span class="chip"><span class="cn">₱</span> <b id="vCoins">0</b></span>
+      </div>
+      <button class="primary pulse" id="cardBtn" style="margin-top:14px">🎴 Open your reward pack</button>
+      <button class="secondary" id="resetBtn">🔄 Play again</button>
+    </div>
+  </main>
+</div>
+
+<!-- POPUP (landing, ambush, rewards) -->
+<div id="modal" class="hidden">
+  <div class="mcard">
+    <div class="mi" id="mIcon"></div>
+    <h2 id="mTitle"></h2>
+    <p id="mText"></p>
+    <div class="chips" id="mChips"></div>
+    <button class="primary" id="mBtn">OK</button>
+  </div>
+</div>
+
+
+
+<!-- REWARD CARD OVERLAY -->
+<div id="cardOverlay" class="hidden">
+  <div class="co-inner">
+    <div id="packStage">
+      <div class="pack" id="pack">
+        <div class="pk-foil"></div>
+        <div class="pk-label"><span class="pk-star">✦</span><b>MOMENTUM</b><small>REWARD PACK</small></div>
+      </div>
+      <p class="muted" style="margin:16px 0 0">Tap the pack to open it</p>
+    </div>
+    <div id="cardStage" class="hidden">
+      
+      <div class="cardwrap" id="cardWrap"></div>
+      <p class="muted" id="cardHint" style="margin:14px 0 0;font-size:.85rem">📸 Screenshot your card to share it.</p>
+      <button class="primary" id="cardDone" style="max-width:330px;margin:10px auto 0">Done</button>
+    </div>
+  </div>
+</div>
+<div id="flash"></div>
+
+<!-- DICE POPUP -->
+<div id="diceModal" class="hidden">
+  <div class="mcard">
+    <h2 id="dTitle">Rolling...</h2>
+    <div class="die big" id="bigDie"></div>
+    <p id="dSub" class="muted"></p>
+    <button class="primary hidden" id="dBtn">Move!</button>
+  </div>
+</div>
+
+<!-- BATTLE -->
+<div id="battle" class="hidden">
+  <div class="bwrap">
+    <div class="arena" id="arena">
+      <div class="pad foe"></div><div class="pad me"></div>
+      <div class="hpbox foe">
+        <div class="nm"><span id="foeName">Monster</span><span id="foeTag">DAY 1</span></div>
+        <div class="hpbar"><i id="foeBar"></i></div>
+      </div>
+      <div class="sprite foe" id="foeSprite">👾</div>
+      <div class="sprite me" id="meSprite">🧑‍💻</div>
+      <div class="hpbox me">
+        <div class="nm"><span id="meName">You</span><span>FOCUS</span></div>
+        <div class="hpbar"><i id="meBar"></i></div>
+        <div class="num" id="meNum">6/6</div>
+      </div>
+    </div>
+    <div class="dlg" id="dlg"><span id="dlgText"></span><span class="nx" id="dlgNext">▼</span></div>
+    <div id="moves" class="hidden"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DEV = false;   // build script flips this to true for the developer file
+  const KEY = DEV ? 'mamayanagame_v5_dev' : 'mamayanagame_v5';
+  const ROOM = 7, DAYS = 5, LAST = ROOM * DAYS, MAX_FOCUS = 6;
+  const COOLDOWN_MS = 6 * 36e5;   // the next day unlocks 6 hours after the previous day was played
+
+  /* ---------- CONTENT ---------- */
+  // R(line, goodMoves[], badMoves[[move, whyItFailed], ...])
+  const R = (line, good, bad) => ({ line, opts: [
+    ...good.map(t => ({ t, ok: true })),
+    ...bad.map(([t, fb]) => ({ t, ok: false, fb }))
+  ]});
+
+  const SLIME_SVG = '<svg viewBox="0 0 100 80" aria-hidden="true"><path d="M8 70 C2 52 14 34 30 28 C34 12 66 10 72 28 C90 32 98 52 92 70 Q50 78 8 70Z" fill="#6bd66b" stroke="#2f8f3f" stroke-width="4" stroke-linejoin="round"/><ellipse cx="34" cy="38" rx="9" ry="5" fill="#b8f5b0" opacity=".7" transform="rotate(-20 34 38)"/><circle cx="38" cy="50" r="6" fill="#fff"/><circle cx="62" cy="50" r="6" fill="#fff"/><circle cx="39" cy="51" r="3" fill="#123"/><circle cx="63" cy="51" r="3" fill="#123"/><path d="M42 62 Q50 68 58 62" fill="none" stroke="#2f8f3f" stroke-width="3" stroke-linecap="round"/></svg>';
+  const monIcon = m => m.svg || m.emoji;
+
+  const rooms = [
+    { title: "Gate of Mamaya Na", sub: "Just start. Two minutes is plenty.",
+      teaser: "Procrastination creatures lurk near the gate. Roll to see who you meet.",
+      mons: [
+        { name: "Procrastination Slime", emoji: "🟢", svg: SLIME_SVG, atk: "Sticky Delay", rounds: [
+          R("I'll start right after coffee. It's only 11:40.",
+            ["Set a 2-minute timer and open the file now.", "Start with the smallest piece. Coffee comes after."],
+            [["Okay, coffee first. Then I'll definitely start.", "Coffee turned into a snack, then a chat. The slime just got bigger."],
+             ["Wait until you feel motivated.", "Motivation usually shows up after you start, not before."]]),
+          R("It's not due until Friday. You have loads of time.",
+            ["Do five minutes today so Friday isn't a panic.", "Write down the first step so it's ready to go."],
+            [["True. Friday-me can handle it.", "Friday-you has the same energy and less time."],
+             ["Spend today planning the perfect schedule.", "A perfect plan is just procrastination wearing a blazer."]])
+        ]},
+        { name: "Desk Tidy Imp", emoji: "👹", atk: "Pointless Tidy", rounds: [
+          R("Your desk is a mess. Clean it first, then you can think.",
+            ["Start messy. Clear just enough space for the laptop.", "Set a 5-minute tidy timer, then begin no matter what."],
+            [["Reorganize the whole desk first.", "Two hours later the desk is spotless and the task is untouched."],
+             ["Rename all your files and folders first.", "Organizing feels like work, but it isn't the work."]]),
+          R("You can't start without all the info. Go gather more.",
+            ["Write what you already know, then list the gaps.", "Start with the part you do know."],
+            [["Open ten more tabs to research.", "More tabs, more fog. Start with what you've got."],
+             ["Ask everyone for their opinion first.", "Collecting opinions isn't progress. Draft first, ask second."]])
+        ]}
+      ]},
+    { title: "Swamp of Overthinking", sub: "47 tabs open, nothing started.",
+      teaser: "The swamp is full of overthinking pests. Roll and face one.",
+      mons: [
+        { name: "Overthinking Gremlin", emoji: "🐸", atk: "Spiral", rounds: [
+          R("Let me rewrite that email one more time.",
+            ["Send it. Eighty percent done beats perfect and unsent.", "Read it once out loud, fix typos only, then send."],
+            [["Rewrite the opening one more time.", "That was rewrite number six. It wasn't broken."],
+             ["Hold it until tomorrow to be safe.", "Tomorrow-you will overthink it just as much."]]),
+          R("What if they hate it?",
+            ["Ask for quick feedback early. It's cheaper than guessing.", "Share a rough draft and say it's rough."],
+            [["Imagine every bad reaction in detail.", "That's just a worry movie. It doesn't fix anything."],
+             ["Hide it until it's flawless.", "Nobody has ever seen a flawless first draft."]])
+        ]},
+        { name: "Tab Hoarder Bat", emoji: "🦇", atk: "Tab Flood", rounds: [
+          R("You have 47 tabs open. Surely the answer is in one of them.",
+            ["Close everything except what this task needs.", "Write the question down, then search once."],
+            [["Bookmark everything just in case.", "Now you own 47 bookmarks and still no answer."],
+             ["Read each tab fully before deciding.", "That's a whole afternoon, and the task is still waiting."]]),
+          R("You still need more research before you can begin.",
+            ["Set a 15-minute research timer. When it rings, start.", "Write down what you already know. It's more than you think."],
+            [["Research until you feel completely sure.", "That feeling never arrives. Set a limit instead."],
+             ["Watch one more tutorial video first.", "Watching isn't doing. Try it, then look things up."]])
+        ]}
+      ]},
+    { title: "Loot Room of Tiny Wins", sub: "One small task at a time is enough.",
+      teaser: "Distractions are everywhere in this room. Roll and deal with one.",
+      mons: [
+        { name: "Inbox Imp", emoji: "👿", atk: "Ping Storm", rounds: [
+          R("Quick peek at notifications. Five minutes. Promise.",
+            ["Mute everything for 25 minutes.", "Close the chat app and put the phone face-down."],
+            [["Just a quick peek. What's the harm?", "One peek turned into twenty minutes. Classic."],
+             ["Reply to every message right now.", "Chats are bottomless. Do your task first, reply later."]]),
+          R("That message looks urgent! Answer it first.",
+            ["Check if it's truly urgent. If not, schedule a reply.", "Reply in one line, then go straight back."],
+            [["Drop everything and reply at length.", "Not everything urgent-looking is urgent. Pause and check first."],
+             ["Open the group chat too, just in case.", "That's how a quick reply becomes a 40-minute scroll."]])
+        ]},
+        { name: "Doomscroll Zombie", emoji: "🧟", atk: "Endless Scroll", rounds: [
+          R("Five minutes of scrolling, then you'll work.",
+            ["Put the phone in another room.", "Trade it: ten minutes of work, then five of scrolling."],
+            [["Okay, five minutes. No timer needed.", "No timer means forty minutes. It always does."],
+             ["Watch one video as a reward first.", "The reward comes after the work, or the work never happens."]]),
+          R("You deserve a break already. You've barely started.",
+            ["Finish one small piece, then take a proper break.", "Take your break after the next 25 minutes, not before."],
+            [["You're right. Break now.", "A break before you've done anything isn't rest, it's hiding."],
+             ["Skip breaks entirely and push through.", "That's burnout with extra steps. Real breaks help."]])
+        ]}
+      ]},
+    { title: "Campfire of Small Wins", sub: "Take a breath. Rest is part of the plan.",
+      teaser: "Burnout and self-doubt haunt the campfire. Roll and face one.",
+      mons: [
+        { name: "Burnout Ghost", emoji: "👻", atk: "Drain", rounds: [
+          R("Everyone else is getting more done than you.",
+            ["Stop comparing. Write down what you finished this week.", "Ask a coworker how they tackle things. They struggle too."],
+            [["Scroll their updates to see how far behind you are.", "You're comparing your behind-the-scenes with their highlights."],
+             ["Work late to catch up to them.", "Racing someone else's pace is the quickest road to burnout."]]),
+          R("You're tired, but you haven't done anything yet.",
+            ["Drink water, stretch, then pick one small task.", "Take a real ten-minute break, then come back."],
+            [["Push through with a third coffee.", "Caffeine borrows energy from later. The ghost loves that."],
+             ["Decide the day is a write-off.", "One small task can rescue a day. Don't write it off."]])
+        ]},
+        { name: "Imposter Shade", emoji: "🎭", atk: "Self-Doubt", rounds: [
+          R("What even is your contribution here?",
+            ["List three things you finished recently, however small.", "Ask a teammate what they appreciate about your work."],
+            [["Agree with it and stay quiet in meetings.", "Silence feeds the shade. Share one thought today."],
+             ["Work extra hard to prove yourself.", "Proving yourself never ends. Notice the proof you already have."]]),
+          R("Everyone will find out you don't know what you're doing.",
+            ["Ask the question. Everyone is still figuring things out.", "Say \"I'm not sure, let me check\" and move on."],
+            [["Pretend you understand everything.", "Faking it makes the work worse and the stress bigger."],
+             ["Avoid anyone who might ask you things.", "Hiding just grows the shade. Talk to one person today."]])
+        ]}
+      ]},
+    { title: "Boss Room: Eternal Mamaya", sub: "Last stretch. Nearly there.",
+      teaser: "The Final Mamaya waits at the exit. Roll and have the conversation.",
+      mons: [] }
+  ];
+
+  const BOSS = { name: "The Final Mamaya", emoji: "🐉", atk: "Eternal Delay", rounds: [
+    R("Oh, you made it this far? Cute. But tomorrow is a much better day to finish.",
+      ["Tomorrow-me is just as tired. I'm doing the first five minutes now.", "Tomorrow isn't a plan. Today's small step is."],
+      [["Hmm, tomorrow does sound easier.", "That's the boss's favorite sentence. Tomorrow never actually shows up."],
+       ["Fine. One more day, then I'll go all in.", "All in tomorrow usually means all nothing today."]]),
+    R("You're not in the mood. Wait until you feel ready.",
+      ["Mood follows action. I'll start now and the mood can catch up.", "I don't need to feel ready. I just need to begin."],
+      [["You're right. I'll wait for the right mood.", "The mood doesn't arrive on its own. It follows the first step."],
+       ["Let me scroll until I feel inspired.", "Inspiration isn't hiding in your feed."]]),
+    R("It's too late now. You've already wasted so many days.",
+      ["I've been moving all week. Another step still counts.", "I started on Day 1. Every small step added up."],
+      [["Maybe it is too late. I should quit.", "You've shown up five days in a row. That's not nothing."],
+       ["Spend today feeling guilty about the lost days.", "Guilt is procrastination in a sad costume. Move instead."]]),
+    R("Fine. But what if it's not perfect? Then what?",
+      ["Done beats perfect. I'll ship it and fix it after feedback.", "A messy finish is better than a perfect nothing."],
+      [["Polish it until it's perfect.", "The perfect version isn't coming. Ship it."],
+       ["Don't submit until someone approves it.", "Waiting for permission to finish is still waiting."]])
+  ]};
+
+  const scrolls = [
+    "You don't need to finish it today. You just need to start it.",
+    "Slow is fine. Standing still is the only losing move.",
+    "Pick the easiest task on your list. Momentum is sneaky.",
+    "Nobody applauds a perfect draft that nobody saw. Ship it, then fix it after feedback.",
+    "Stuck for 15 minutes? Ask a teammate. It's faster than another browser tab.",
+    "Not every day is a productive day. Showing up still counts.",
+    "Your to-do list isn't chasing you. One item at a time.",
+    "A messy first pass beats a blank page every time."
+  ];
+  const loots = [
+    "You opened the file. That's the hardest part, honestly.",
+    "You wrote one line. Future you says thanks.",
+    "You replied to the email you were avoiding. Nice.",
+    "You made a short list instead of carrying it all in your head.",
+    "You took a real break and came back. Smart."
+  ];
+  const rollMsgs = [
+    "Nice. Even a small move is still a move.",
+    "You moved. The hard part was starting, and you did that.",
+    "No pressure. End the day whenever you've made some progress."
+  ];
+  const GOOD = ["It's super effective!", "Direct hit!", "That's exactly what it needed to hear.", "Nice. That one landed."];
+
+  // Tiles 2-7 of each room: enemy, loot, enemy, scroll, enemy, gatekeeper
+  const TYPES = { 1: ['gate','🚩'], 2: ['enemy','👾'], 3: ['loot','💎'], 4: ['enemy','👾'], 5: ['scroll','📜'], 6: ['enemy','👾'], 7: ['elite','🚪'] };
+  function tileInfo(n){
+    if (n === LAST) return ['flag','🏁'];
+    const rel = (n - 1) % ROOM + 1;
+    if (n > ROOM * (DAYS - 1) && rel > 1) return ['boss','🐉'];
+    return TYPES[rel];
+  }
+
+  /* ---------- HELPERS ---------- */
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const PIPS = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] };
+
+  function msToUnlock(){
+    if (!s.playedAt) return 0;
+    const left = s.playedAt + COOLDOWN_MS - Date.now();
+    return Math.max(0, Math.min(left, COOLDOWN_MS));   // clamp: moving the clock back never adds time
+  }
+  function clock(ms){
+    const t = Math.ceil(ms / 1000), hh = Math.floor(t / 3600), mm = Math.floor(t % 3600 / 60), ss = t % 60;
+    return [hh, mm, ss].map(n => String(n).padStart(2, '0')).join(':');
+  }
+  function hm(ms){ const m = Math.ceil(ms / 60000); return Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; }
+  const isLocked = () => s.cleared.length < DAYS && s.roll === null && !s.test && msToUnlock() > 0;
+  function fresh(){ return { name:"", gender:"neutral", day:0, pos:1, cleared:[], roll:null, evt:null, enc:null, rollMsg:null, playedAt:0, test:false, momentum:0, coins:0, wins:[], draft:"", stats:{ fights:0, flawless:0, weak:0, hints:0 }, card:null, seenHelp:false }; }
+  const AV = { boy: '👨‍💻', girl: '👩‍💻', neutral: '🧑‍💻' };
+  const TOK = { boy: '🧍‍♂️', girl: '🧍‍♀️', neutral: '🧍' };
+  const COIN = '<span class="cn">₱</span>';
+  function load(){
+    try { const o = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)) || {}); if (!DEV) o.test = false; return o; }
+    catch(e){ return fresh(); }
+  }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){} }
+
+  let s = load();
+  let shown = s.pos;
+  let busy = false;
+  let wasLocked = false;
+  let armed = false;   // New Game needs a second tap when it would erase progress (confirm() is blocked in some viewers)
+  const nm = () => s.name || 'You';
+  const av = () => AV[s.gender] || AV.neutral;
+
+  /* ---------- INTRO ---------- */
+  function hasProgress(){ return s.day > 0 || s.pos > 1 || s.roll !== null; }
+
+  function enterGame(){
+    $('introScreen').classList.add('hidden');
+    shown = s.pos;
+    render();
+    if (s.enc && !s.enc.done && !busy) runEncounter();   // resume an unfinished encounter
+  }
+
+  $('insertCoinBtn').onclick = () => {
+    $('insertCoinBtn').disabled = true;
+    $('coinStatus').textContent = 'CLINK!';
+    $('coin').classList.add('drop');
+    setTimeout(() => {
+      $('stageCoin').classList.add('hidden');
+      $('stageMenu').classList.remove('hidden');
+      armed = false;
+      if (hasProgress()) {
+        const finished = s.cleared.length >= DAYS;
+        $('menuContinueBtn').classList.remove('hidden');
+        $('menuContinueBtn').textContent = finished ? '🏆 VICTORY & MY CARD'
+          : `▶ CONTINUE (Day ${Math.min(s.day + 1, DAYS)})` + (isLocked() ? ` · unlocks in ${hm(msToUnlock())}` : '');
+        $('menuNewGame').textContent = '✨ NEW GAME';
+      } else {
+        $('menuContinueBtn').classList.add('hidden');
+        $('menuNewGame').textContent = '▶ START GAME';
+      }
+    }, 750);
+  };
+  // Player setup: name + hero
+  let profileMode = 'new';     // 'new' = fresh game, 'keep' = old save that has no name yet
+  let pickedGender = 'neutral';
+
+  function showProfile(mode){
+    profileMode = mode;
+    pickedGender = s.gender || 'neutral';
+    $('nameInput').value = s.name || '';
+    setGender(pickedGender);
+    $('stageMenu').classList.add('hidden');
+    $('stageProfile').classList.remove('hidden');
+    $('profileStartBtn').disabled = !$('nameInput').value.trim();
+    setTimeout(() => $('nameInput').focus(), 50);
+  }
+  function setGender(g){
+    pickedGender = g;
+    document.querySelectorAll('#gBtns .gbtn').forEach(b => b.classList.toggle('active', b.dataset.g === g));
+  }
+  document.querySelectorAll('#gBtns .gbtn').forEach(b => { b.onclick = () => setGender(b.dataset.g); });
+  $('nameInput').oninput = () => { $('profileStartBtn').disabled = !$('nameInput').value.trim(); };
+  $('nameInput').onkeydown = e => { if (e.key === 'Enter' && !$('profileStartBtn').disabled) $('profileStartBtn').click(); };
+
+  $('profileStartBtn').onclick = () => {
+    const name = $('nameInput').value.trim().slice(0, 14);
+    if (!name) return;
+    if (profileMode === 'new') {
+      const keepTest = s.test;
+      s = fresh(); s.test = keepTest;
+    }
+    s.name = name; s.gender = pickedGender;
+    save();
+    enterGame();
+    if (!s.seenHelp) { s.seenHelp = true; save(); howTo(); }
+  };
+
+  $('menuContinueBtn').onclick = () => { if (s.name) enterGame(); else showProfile('keep'); };
+  $('menuNewGame').onclick = () => {
+    if (hasProgress() && !armed) {
+      armed = true;
+      $('menuNewGame').textContent = s.cleared.length >= DAYS ? '⚠ Tap again: this clears your card' : '⚠ Tap again to erase progress';
+      return;
+    }
+    armed = false;
+    showProfile('new');
+  };
+  $('helpBtn').onclick = () => { if (!busy) howTo(); };
+  $('homeBtn').onclick = () => {
+    if (busy) return;
+    $('coin').classList.remove('drop');
+    $('insertCoinBtn').disabled = false;
+    $('coinStatus').textContent = 'INSERT ₱5 TO START';
+    $('stageMenu').classList.add('hidden');
+    $('stageProfile').classList.add('hidden');
+    $('stageCoin').classList.remove('hidden');
+    $('introScreen').classList.remove('hidden');
+  };
+
+  /* ---------- RENDER ---------- */
+  function dieFace(n, id){
+    if (!n) { $(id || 'die').innerHTML = '<b class="q">?</b>'; return; }
+    const on = PIPS[n];
+    let h = '';
+    for (let i = 0; i < 9; i++) h += `<i class="${on.includes(i) ? 'on' : ''}"></i>`;
+    $(id || 'die').innerHTML = h;
+  }
+
+  function renderMaze(){
+    const cur = Math.min(s.day, DAYS - 1);
+    let html = '';
+    rooms.forEach((r, ri) => {
+      const start = ri * ROOM + 1;
+      const state = s.cleared.includes(ri) ? 'done' : ri === cur ? 'current' : 'locked';
+      const flip = ri % 2 === 1 ? ' flip' : '';
+      html += `<div class="room ${state}${flip}"><div class="room-label"><span>Day ${ri+1} · ${r.title}</span><span>${state === 'done' ? '✓' : state === 'locked' ? '🔒' : ri % 2 ? '←' : '→'}</span></div><div class="tiles">`;
+      for (let n = start; n < start + ROOM; n++) {
+        const [, ic] = tileInfo(n);
+        const cls = n === shown ? 'tile player' : (n < shown || state === 'done') ? 'tile visited' : 'tile';
+        html += `<div class="${cls}"><span class="ic">${n === shown ? (TOK[s.gender] || TOK.neutral) : ic}</span><span class="n">${n}</span></div>`;
+      }
+      html += '</div></div>';
+    });
+    $('maze').innerHTML = html;
+  }
+
+  function renderBanner(idx){
+    const e = s.evt;
+    $('banner').className = 'banner' + (e && e.type ? ' ' + e.type : '');
+    if (e) {
+      $('bLabel').textContent = e.label;
+      $('bText').textContent = e.text;
+      $('bTip').textContent = e.tip || '';
+    } else {
+      $('bLabel').textContent = '⚠️ Trouble ahead';
+      $('bText').textContent = rooms[idx].teaser;
+      $('bTip').textContent = '';
+    }
+  }
+
+  function render(){
+    const idx = Math.min(s.day, DAYS - 1), r = rooms[idx];
+    renderMaze();
+    $('momentumChip').textContent = s.momentum;
+    $('coinChip').textContent = s.coins;
+    $('playerChip').textContent = `${av()} ${nm()}`;
+    $('vTitle').textContent = `${nm().toUpperCase()} BEAT MAMAYA NA`;
+    $('progressBar').style.width = (s.cleared.length / DAYS * 100) + '%';
+    
+
+    if (s.cleared.length >= DAYS) {
+      $('travelSection').classList.add('hidden');
+      $('victory').classList.remove('hidden');
+      $('dayTag').textContent = 'QUEST COMPLETE';
+      $('roomTitle').textContent = 'Victory!';
+      $('roomSub').textContent = 'You made it to the end of the dungeon.';
+      $('posPill').textContent = 'CHECKPOINT 5 / 5';
+      $('vMomentum').textContent = s.momentum;
+      $('vCoins').textContent = s.coins;
+      $('cardBtn').textContent = s.card ? '🎴 View my card' : '🎴 Open your reward pack';
+      $('cardBtn').classList.toggle('pulse', !s.card);
+      $('resetBtn').textContent = '🔄 Play again'; armedReset = false;
+      const ul = $('winsList'); ul.innerHTML = '';
+      const wins = s.wins.length ? s.wins : [{ day: 0, text: 'You showed up all five days.' }];
+      wins.forEach(w => { const li = document.createElement('li'); li.textContent = w.day ? `Day ${w.day}: ${w.text}` : w.text; ul.appendChild(li); });
+      return;
+    }
+
+    $('victory').classList.add('hidden');
+    $('travelSection').classList.remove('hidden');
+    $('dayTag').textContent = `DAY ${idx + 1} OF ${DAYS}`;
+    $('roomTitle').textContent = r.title;
+    $('roomSub').textContent = r.sub;
+    $('posPill').textContent = `CHECKPOINT ${idx + 1} / ${DAYS}`;
+    renderBanner(idx);
+
+    const pending = !!(s.enc && !s.enc.done);
+    const locked = isLocked();
+    wasLocked = locked;
+    $('rollBtn').disabled = busy || s.roll !== null || locked;
+    $('rollBtn').textContent = locked ? `🔒 Day ${idx + 1} is locked` : '🎲 Roll & Advance';
+    $('lockCard').classList.toggle('hidden', !locked);
+    $('diceBox').classList.toggle('hidden', locked);
+    $('taskBox').classList.toggle('hidden', locked);
+    if (locked) {
+      $('lockTime').textContent = clock(msToUnlock());
+      $('lockSub').textContent = `Day ${idx + 1} opens 6 hours after you played Day ${idx}. See you then, ${nm()}!`;
+    }
+    $('continueBtn').disabled = busy || s.roll === null || pending;
+    $('continueBtn').textContent = idx === DAYS - 1 ? '🏆 Claim victory' : '✅ I made progress. End the day';
+    
+    $('taskInput').value = s.draft || '';
+    $('taskInput').disabled = locked;
+
+    if (!busy) dieFace(s.roll);
+    $('rollLabel').textContent = s.roll ? `${nm()} rolled a ${s.roll}` : `Ready${s.name ? ', ' + s.name : ''}?`;
+
+    if (locked) $('status').textContent = `Nice work, ${nm()}. The next day unlocks when the timer hits zero.`;
+    else if (s.roll && !pending) $('status').textContent = idx === DAYS - 1 ? 'The boss is down. Claim your victory!' : (s.rollMsg || rollMsgs[0]);
+    else if (s.roll) $('status').textContent = 'Something is in your way...';
+    else $('status').textContent = 'Roll the die to move forward.';
+  }
+
+  /* ---------- POPUP ---------- */
+  function modal({ icon, title, text, chips = [], btn = 'OK', left = false }){
+    return new Promise(res => {
+      $('mIcon').textContent = icon;
+      $('mText').style.textAlign = left ? 'left' : '';
+      $('mTitle').textContent = title;
+      $('mText').textContent = text;
+      const c = $('mChips'); c.innerHTML = '';
+      chips.forEach(t => { const sp = document.createElement('span'); sp.className = 'chip'; sp.innerHTML = t; c.appendChild(sp); });   // chip strings are built from numbers only
+      $('mBtn').textContent = btn;
+      $('modal').classList.remove('hidden');
+      $('mBtn').onclick = () => { $('modal').classList.add('hidden'); res(); };
+    });
+  }
+
+  function howTo(){
+    return modal({
+      icon: '📖', title: 'HOW TO PLAY', left: true, btn: 'Got it',
+      text: 'GOAL: survive 5 days of "Mamaya na" and earn your shiny reward card.\n\n' +
+            '• Each day, set one small goal (optional), then roll the die and walk through that day\'s room.\n' +
+            '• Every landing gives a reward. Monsters block the way: pick the best reply to talk them down.\n' +
+            '• Weak replies cost Focus, but you can\'t lose. Hints cost 1 coin.\n' +
+            '• Press "End the day" when you\'re done. The next day unlocks 6 hours after you played.\n' +
+            '• Beat the Day 5 boss, open your reward pack and screenshot your card.'
+    });
+  }
+
+  /* ---------- BATTLE ---------- */
+  let tap = null;
+  function say(text, hold){
+    return new Promise(async resolve => {
+      const el = $('dlgText');
+      el.textContent = '';
+      $('dlgNext').style.visibility = 'hidden';
+      let skip = false;
+      tap = () => { skip = true; };
+      for (let i = 1; i <= text.length && !skip; i++) { el.textContent = text.slice(0, i); await sleep(16); }
+      el.textContent = text;
+      $('dlgNext').style.visibility = 'visible';
+      const t = setTimeout(() => { tap = null; resolve(); }, hold != null ? hold : 1000 + text.length * 22);
+      tap = () => { clearTimeout(t); tap = null; resolve(); };
+    });
+  }
+  $('dlg').onclick = () => { if (tap) tap(); };
+
+  function setBar(id, cur, max){
+    const el = $(id), pct = Math.max(0, cur / max * 100);
+    el.style.width = pct + '%';
+    el.style.background = pct > 50 ? '#4cd964' : pct > 25 ? '#ffcc00' : '#ff5b5b';
+  }
+  function setMe(cur){ setBar('meBar', cur, MAX_FOCUS); $('meNum').textContent = `${cur}/${MAX_FOCUS}`; }
+  function flash(el, cls){ el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+  function chooseMove(round, order, used){
+    return new Promise(res => {
+      const box = $('moves');
+      function draw(){
+        box.innerHTML = '';
+        order.forEach(i => {
+          const b = document.createElement('button');
+          b.className = 'move' + (used.has(i) ? ' used' : '');
+          b.textContent = round.opts[i].t;
+          b.disabled = used.has(i);
+          b.onclick = () => { box.classList.add('hidden'); res(i); };
+          box.appendChild(b);
+        });
+        const cand = order.filter(i => !round.opts[i].ok && !used.has(i));
+        const h = document.createElement('button');
+        h.className = 'move hintbtn';
+        h.innerHTML = `💡 Hint: rule out a weak move (1 ${COIN}, you have ${Number(s.coins) || 0})`;
+        h.disabled = s.coins < 1 || !cand.length;
+        h.onclick = () => {
+          const k = pick(cand);
+          used.add(k); s.coins--; s.stats.hints++; save();
+          $('coinChip').textContent = s.coins;
+          draw();
+        };
+        box.appendChild(h);
+      }
+      draw();
+      box.classList.remove('hidden');
+    });
+  }
+
+  async function battle(mon, boss){
+    const total = boss ? 4 : 2;
+    let foe = total, me = MAX_FOCUS, mistakes = 0;
+    const fs = $('foeSprite'), ms = $('meSprite'), arena = $('arena');
+
+    async function hurt(n, label){
+      flash(ms, 'hit'); flash(arena, 'shake');
+      if (me <= 1) { await say("You're running on fumes, but you stay on your feet."); return; }
+      me = Math.max(1, me - n); setMe(me);
+      await say(label);
+    }
+
+    fs.className = 'sprite foe'; ms.className = 'sprite me';
+    fs.innerHTML = monIcon(mon);   // emoji or built-in svg, never user text
+    ms.textContent = av();
+    $('meName').textContent = nm().toUpperCase();
+    $('foeName').textContent = mon.name;
+    $('foeTag').textContent = boss ? 'BOSS' : 'DAY ' + (Math.min(s.day, DAYS - 1) + 1);
+    setBar('foeBar', foe, total); setMe(me);
+    $('moves').classList.add('hidden');
+    $('battle').classList.remove('hidden');
+
+    await say(boss ? `The final boss, ${mon.name}, blocks the exit!` : `A wild ${mon.name} appeared!`);
+
+    for (let r = 0; r < total; r++) {
+      const round = mon.rounds[r];
+      await say(`${mon.name}: “${round.line}”`);
+      const used = new Set();
+      const order = shuffle(round.opts.map((_, i) => i));
+      let solved = false;
+      while (!solved) {
+        const idx = await chooseMove(round, order, used);
+        used.add(idx);
+        const o = round.opts[idx];
+        await say(`${nm()}: ${o.t}`, 600);
+        if (o.ok) {
+          flash(fs, 'hit');
+          foe--; setBar('foeBar', foe, total);
+          await say(pick(GOOD));
+          solved = true;
+          if (boss && foe > 0) {
+            await say(`${mon.name} used ${mon.atk}!`, 800);
+            await hurt(1, 'It only grazes you. Focus -1.');
+          }
+        } else {
+          mistakes++;
+          await say(o.fb);
+          await say(`${mon.name} used ${mon.atk}!`, 800);
+          await hurt(2, 'Ouch. Focus -2.');
+        }
+      }
+    }
+
+    fs.classList.add('faint');
+    await sleep(700);
+    await say(`${mon.name} fainted!`);
+    await say(boss ? 'You talked down the Final Mamaya!' : 'The path is clear.');
+    $('battle').classList.add('hidden');
+    return { mistakes };
+  }
+
+  /* ---------- ENCOUNTERS ---------- */
+  function grant(coins, mom){ s.coins += coins; s.momentum += mom; }
+
+  async function runEncounter(){
+    busy = true; render();
+    const idx = Math.min(s.day, DAYS - 1), room = rooms[idx], e = s.enc;
+    try {
+      if (e.kind === 'loot' || e.kind === 'scroll') {
+        const loot = e.kind === 'loot';
+        const coins = loot ? 2 : 1, mom = loot ? 2 : 3;
+        grant(coins, mom);
+        s.evt = { type: e.kind, label: loot ? '💎 TINY WIN FOUND' : '📜 MOTIVATION SCROLL', text: e.text, tip: `Reward: +${coins} coin${coins > 1 ? 's' : ''}, +${mom} momentum` };
+        e.done = true; save();
+        await modal({ icon: loot ? '💎' : '📜', title: loot ? 'TINY WIN FOUND!' : 'MOTIVATION SCROLL', text: e.text, chips: [`+${coins} ${COIN}`, `+${mom} Momentum`], btn: 'Collect' });
+      } else {
+        const boss = e.kind === 'boss';
+        const mon = boss ? BOSS : room.mons[e.mi];
+        await modal({
+          icon: mon.emoji,
+          title: boss ? 'FINAL BOSS!' : (e.kind === 'elite' ? 'GATEKEEPER!' : 'AMBUSH!'),
+          text: boss ? 'The Final Mamaya blocks the exit. Talk it down. It takes four good replies, and it hits back.' : `${mon.name} blocks your path. Two good moves will clear it. Pick wisely.`,
+          btn: boss ? 'Face it' : 'Fight!'
+        });
+        const res = await battle(mon, boss);
+        s.stats.fights++; s.stats.weak += res.mistakes; if (res.mistakes === 0) s.stats.flawless++;
+        let coins = boss ? 5 : e.kind === 'elite' ? 2 : 1;
+        const mom = boss ? 10 : e.kind === 'elite' ? 4 : 3;
+        const flawless = res.mistakes === 0;
+        if (flawless) coins += boss ? 2 : 1;
+        grant(coins, mom);
+        s.evt = { type: 'win', label: `⚔️ ${mon.name} defeated`, text: boss ? 'You beat the Final Mamaya.' : 'You faced the problem and moved on.', tip: `Reward: +${coins} coin${coins > 1 ? 's' : ''}, +${mom} momentum${flawless ? ' (flawless!)' : ''}` };
+        e.done = true; save();
+        const chips = [`+${coins} ${COIN}`, `+${mom} Momentum`];
+        if (flawless) chips.push('⭐ Flawless');
+        await modal({ icon: boss ? '🏆' : '🎉', title: boss ? 'BOSS DEFEATED!' : 'VICTORY!', text: boss ? `The Mamaya is gone. Go claim your win, ${nm()}.` : 'Problem solved. Here is your reward.', chips, btn: 'Collect' });
+      }
+    } finally {
+      busy = false; render();
+    }
+  }
+
+  // Dice popup: big die spins, lands on the result, then moves on (tap Move! or wait)
+  function rollPopup(r){
+    return new Promise(async res => {
+      const m = $('diceModal'), big = $('bigDie');
+      $('dTitle').textContent = `${nm()} rolls the die...`;
+      $('dSub').textContent = '';
+      $('dBtn').classList.add('hidden');
+      big.classList.add('roll');
+      dieFace(1 + Math.floor(Math.random() * 6), 'bigDie');
+      m.classList.remove('hidden');
+      const spin = setInterval(() => dieFace(1 + Math.floor(Math.random() * 6), 'bigDie'), 80);
+      await sleep(1000);
+      clearInterval(spin);
+      big.classList.remove('roll');
+      dieFace(r, 'bigDie');
+      $('dTitle').textContent = `${nm()} rolled a ${r}!`;
+      $('dSub').textContent = `Move ${r} tile${r > 1 ? 's' : ''} forward.`;
+      $('dBtn').classList.remove('hidden');
+      const t = setTimeout(done, 1600);
+      function done(){ clearTimeout(t); $('dBtn').onclick = null; m.classList.add('hidden'); res(); }
+      $('dBtn').onclick = done;
+    });
+  }
+
+  function walk(dest, done){
+    const t = setInterval(() => {
+      shown++;
+      renderMaze();
+      if (shown >= dest) { clearInterval(t); done(); }
+    }, 170);
+  }
+
+  $('taskInput').oninput = e => { s.draft = e.target.value; save(); };
+
+  $('rollBtn').onclick = () => {
+    if (busy || s.roll !== null) return;
+    const idx = Math.min(s.day, DAYS - 1);
+    if (s.cleared.includes(idx)) return;
+    if (isLocked()) return;
+
+    busy = true;
+    $('rollBtn').disabled = true; $('continueBtn').disabled = true;
+    $('rollLabel').textContent = 'Rolling...';
+    const r = 1 + Math.floor(Math.random() * 6);
+
+    rollPopup(r).then(() => {
+      dieFace(r);
+      $('rollLabel').textContent = `${nm()} rolled a ${r}`;
+
+      const start = idx * ROOM + 1;
+      const dest = Math.min(start + ROOM - 1, start + r);
+      shown = start;
+      walk(dest, () => {
+        s.roll = r;
+        s.playedAt = Date.now();   // the 6-hour timer starts from the moment the day was played
+        s.pos = dest;
+        s.momentum += r;
+        s.rollMsg = pick(rollMsgs);
+        s.evt = null;
+        const kind = idx === DAYS - 1 ? 'boss' : tileInfo(dest)[0];
+        s.enc = { kind, done: false };
+        if (kind === 'loot') s.enc.text = pick(loots);
+        else if (kind === 'scroll') s.enc.text = pick(scrolls);
+        else if (kind !== 'boss') s.enc.mi = Math.floor(Math.random() * rooms[idx].mons.length);
+        save();
+        runEncounter();
+      });
+    });
+  };
+
+  function finishDay(){
+    const idx = Math.min(s.day, DAYS - 1);
+    if (s.cleared.includes(idx)) return;
+    const task = (s.draft || '').trim();
+    if (task) s.wins.push({ day: idx + 1, text: task });
+    s.cleared.push(idx);
+    s.day = Math.min(DAYS, s.day + 1);
+    s.roll = null;
+    s.evt = null;
+    s.enc = null;
+    s.rollMsg = null;
+    s.draft = '';
+    s.pos = s.day >= DAYS ? LAST : s.day * ROOM + 1;   // Day 5 always ends on the finish tile
+    shown = s.pos;
+    save();
+    render();
+  }
+
+  $('continueBtn').onclick = () => { if (!busy && s.roll !== null && !(s.enc && !s.enc.done)) finishDay(); };
+
+  /* ---------- REWARD CARD (gacha pull) ---------- */
+  const TIERS = { 1: '✦ SHINY', 2: '✦✦ SHINY EX', 3: '✦✦✦ SHINY SECRET' };
+  const ARCH = {
+    flawless:   { title: 'Flawless Finisher', type: 'FOCUS',  c1: '#58d6ff', c2: '#2457d6', shirt: '#2f6bff', acc: 'headset',
+      moves: [['Laser Focus', 60, 'Went through the dungeon without a wrong turn.'], ['Clean Run', 40, 'Zero weak moves, all week.']], flavor: '“Mamaya na? Not today.”' },
+    strategist: { title: 'Smart Strategist',  type: 'MIND',   c1: '#b58cff', c2: '#5a2fc2', shirt: '#7a4cf0', acc: 'glasses',
+      moves: [['Smart Hint', 40, 'Used every trick to avoid a bad move.'], ['Big Picture', 50, 'Thought first, then acted.']], flavor: '“Plan the first step. The rest follows.”' },
+    comeback:   { title: 'Comeback Hero',     type: 'GRIT',   c1: '#ff9a6b', c2: '#c8301f', shirt: '#e04b3a', acc: 'cape',
+      moves: [['Second Wind', 50, 'Took the hits and got back up.'], ['Plot Twist', 40, 'Turned a rough start around.']], flavor: '“Fell down a few times. Finished anyway.”' },
+    goal:       { title: 'Goal Getter',       type: 'DRIVE',  c1: '#f6b73c', c2: '#a84f00', shirt: '#f2a400', acc: 'badge',
+      moves: [['Goal Locked', 50, 'Set a goal and went after it.'], ['Checklist Slam', 40, 'Small goals, big results.']], flavor: '“One small goal at a time.”' },
+    momentum:   { title: 'Momentum Master',   type: 'SPEED',  c1: '#ff7bd0', c2: '#b0208f', shirt: '#e03bb0', acc: 'crown',
+      moves: [['Snowball', 60, 'Every step made the next one easier.'], ['Full Send', 50, 'Kept rolling until the very end.']], flavor: '“A body in motion stays in motion.”' },
+    steady:     { title: 'Steady Hero',       type: 'STEADY', c1: '#6fe3a2', c2: '#127a52', shirt: '#25b878', acc: 'sprout',
+      moves: [['Daily Step', 40, 'Showed up every single day.'], ['Slow And Sure', 50, 'Slow? Maybe. Still moving.']], flavor: '“Slow is fine. Still moving.”' }
+  };
+
+  function pickArch(c){
+    if (c.fights >= 3 && c.weak === 0) return 'flawless';
+    if (c.hints >= 2) return 'strategist';
+    if (c.weak >= 5) return 'comeback';
+    if (c.goals >= 4) return 'goal';
+    if (c.momentum >= 45) return 'momentum';
+    return 'steady';
+  }
+
+  function star(cx, cy, R, r){
+    const p = [];
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, d = i % 2 ? r : R; p.push((cx + d * Math.cos(a)).toFixed(1) + ',' + (cy + d * Math.sin(a)).toFixed(1)); }
+    return p.join(' ');
+  }
+
+  // Character art, drawn per gender (boy / girl / neutral) and dressed per card type
+  function heroSVG(g, a){
+    const skin = '#e9b48b', skinSh = '#d39a70', hair = g === 'girl' ? '#2b1a14' : g === 'boy' ? '#1c1a24' : '#35261f';
+    const hairBack = g === 'girl'
+      ? `<path d="M50 98 C42 140 44 178 58 194 C80 204 120 204 142 194 C156 178 158 140 150 98Z" fill="${hair}"/>`
+      : g === 'neutral' ? `<path d="M52 98 C48 124 52 142 62 150 L138 150 C148 142 152 124 148 98Z" fill="${hair}"/>` : '';
+    const hairFront = g === 'girl'
+      ? `<path d="M59 102 C50 52 82 33 104 35 C132 37 151 58 141 102 C135 82 122 69 108 63 C98 80 76 86 59 102Z" fill="${hair}"/><path d="M59 102 C55 132 54 160 62 178 C70 152 72 126 68 106Z" fill="${hair}"/><path d="M141 102 C145 132 146 160 138 178 C130 152 128 126 132 106Z" fill="${hair}"/>`
+      : g === 'boy'
+      ? `<path d="M60 98 C52 54 80 34 104 36 C132 38 150 60 140 98 C137 80 128 70 114 64 C100 74 80 72 66 84Z" fill="${hair}"/>`
+      : `<path d="M58 104 C48 54 80 33 104 35 C134 37 152 60 142 104 C136 84 124 70 108 63 C96 78 76 84 58 104Z" fill="${hair}"/>`;
+    const cape = a.acc === 'cape' ? `<path d="M30 230 C26 176 50 142 100 140 C150 142 174 176 170 230Z" fill="#8f1d2c"/>` : '';
+    let accFront = '';
+    if (a.acc === 'headset') accFront = '<path d="M63 100 C58 38 142 38 137 100" fill="none" stroke="#242a38" stroke-width="6" stroke-linecap="round"/><rect x="55" y="94" width="14" height="24" rx="6" fill="#242a38"/><rect x="131" y="94" width="14" height="24" rx="6" fill="#242a38"/><path d="M62 118 Q70 138 90 134" fill="none" stroke="#242a38" stroke-width="4" stroke-linecap="round"/><circle cx="92" cy="134" r="4.5" fill="#242a38"/>';
+    if (a.acc === 'glasses') accFront = '<g stroke="#20243a" stroke-width="3.5" fill="rgba(160,220,255,.28)"><circle cx="85" cy="103" r="11.5"/><circle cx="115" cy="103" r="11.5"/></g><path d="M96.5 102 H103.5" stroke="#20243a" stroke-width="3.5"/>';
+    if (a.acc === 'cape') accFront = '<path d="M58 86 Q100 68 142 86 L142 95 Q100 79 58 95Z" fill="#ff5b6e"/><path d="M142 88 L160 80 L156 96Z" fill="#ff5b6e"/>';
+    if (a.acc === 'badge') accFront = `<polygon points="${star(132, 188, 14, 6)}" fill="#ffe066" stroke="#c28a1e" stroke-width="2.5" stroke-linejoin="round"/>`;
+    if (a.acc === 'crown') accFront = '<path d="M68 56 L76 26 L90 44 L100 20 L110 44 L124 26 L132 56Z" fill="#ffd166" stroke="#c28a1e" stroke-width="3" stroke-linejoin="round"/><circle cx="100" cy="44" r="3.5" fill="#ff5b6e"/>';
+    if (a.acc === 'sprout') accFront = '<path d="M132 204 V188" stroke="#1f7a4a" stroke-width="3.5" stroke-linecap="round" fill="none"/><path d="M132 190 Q118 188 118 176 Q132 176 132 190Z M132 190 Q146 188 146 176 Q132 176 132 190Z" fill="#7ee2a8" stroke="#1f7a4a" stroke-width="2"/>';
+    return `<svg viewBox="0 0 200 230" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+      ${cape}${hairBack}
+      <path d="M38 230 C38 176 66 152 100 152 C134 152 162 176 162 230Z" fill="${a.shirt}"/>
+      <rect x="87" y="126" width="26" height="30" rx="10" fill="${skinSh}"/>
+      <path d="M86 150 L100 174 L114 150Z" fill="${skinSh}"/>
+      <path d="M80 152 L100 180 L120 152" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+      <ellipse cx="100" cy="98" rx="37" ry="42" fill="${skin}"/>
+      <circle cx="63.5" cy="102" r="7" fill="${skin}"/><circle cx="136.5" cy="102" r="7" fill="${skin}"/>
+      <ellipse cx="85" cy="103" rx="4.6" ry="5.6" fill="#1b1420"/><ellipse cx="115" cy="103" rx="4.6" ry="5.6" fill="#1b1420"/>
+      <circle cx="86.6" cy="101" r="1.7" fill="#fff"/><circle cx="116.6" cy="101" r="1.7" fill="#fff"/>
+      <path d="M77 92 Q85 87 93 91" stroke="${hair}" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M107 91 Q115 87 123 92" stroke="${hair}" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M100 106 Q97 113 101 113" stroke="${skinSh}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M88 120 Q100 131 112 120" stroke="#8a3b3b" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <ellipse cx="75" cy="115" rx="6" ry="3.5" fill="#ff8a8a" opacity=".35"/><ellipse cx="125" cy="115" rx="6" ry="3.5" fill="#ff8a8a" opacity=".35"/>
+      ${hairFront}${accFront}
+    </svg>`;
+  }
+
+  function cardHTML(c){
+    const a = ARCH[c.arch] || ARCH.steady, st = c.stats;
+    const hp = Math.min(300, 80 + st.momentum * 2);
+    const moves = a.moves.map(m => `<div class="pc-move"><span class="mv-n">${esc(m[0])}</span><span class="mv-d">${esc(m[2])}</span><b class="mv-dmg">${m[1]}</b></div>`).join('');
+    return `<div class="pc foil-${c.foil} tier-${c.tier}" style="--c1:${a.c1};--c2:${a.c2}">
+      <div class="pc-in">
+        <div><div class="pc-tier">${TIERS[c.tier]}</div>
+          <div class="pc-row"><b class="pc-name">${esc(c.name || 'Hero')}</b><span class="pc-hp"><small>HP</small>${hp}</span></div></div>
+        <div class="pc-art"><div class="rays"></div><i class="sp s1">✦</i><i class="sp s2">✦</i><i class="sp s3">✦</i>${heroSVG(c.g, a)}<span class="pc-type">${a.type}</span></div>
+        <div class="pc-ribbon">${esc(a.title)} · Lv.5</div>
+        <div class="pc-moves">${moves}</div>
+        <div class="pc-stats"><span><b>${st.days}/5</b>days</span><span><b>${st.fights}</b>mobs beaten</span><span><b>${st.flawless}</b>flawless</span><span><b>${st.goals}</b>goals</span></div>
+        <div class="pc-flavor">${esc(a.flavor)}</div>
+        <div class="pc-foot"><span>Project Momentum</span><span>#${String(c.num).padStart(3, '0')}/150 · ${esc(c.date)}</span></div>
+      </div>
+      <div class="foil"></div><div class="sparkle"></div><div class="shine"></div>
+    </div>`;
+  }
+
+  function makeCard(over){
+    const stats = { days: s.cleared.length, fights: s.stats.fights, flawless: s.stats.flawless, weak: s.stats.weak, hints: s.stats.hints, goals: s.wins.length, momentum: s.momentum };
+    const r = Math.random();
+    const c = { name: s.name, g: s.gender, stats,
+      tier: r < .08 ? 3 : r < .38 ? 2 : 1,
+      foil: pick(['rainbow', 'galaxy', 'gold', 'aurora']),
+      num: 1 + Math.floor(Math.random() * 150),
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) };
+    c.arch = pickArch(stats);
+    return Object.assign(c, over || {});
+  }
+
+  function showCard(c){
+    $('cardWrap').innerHTML = cardHTML(c);
+    const el = $('cardWrap').querySelector('.pc');
+    el.addEventListener('pointermove', e => {
+      const b = el.getBoundingClientRect(), x = (e.clientX - b.left) / b.width, y = (e.clientY - b.top) / b.height;
+      el.style.setProperty('--mx', (x * 100) + '%'); el.style.setProperty('--my', (y * 100) + '%');
+      el.style.transform = `perspective(700px) rotateY(${(x - .5) * 16}deg) rotateX(${(.5 - y) * 16}deg)`;
+    });
+    el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+  }
+
+  function burst(){
+    const box = $('cardWrap');
+    for (let i = 0; i < 26; i++) {
+      const b = document.createElement('i'); b.className = 'bit';
+      const ang = Math.random() * Math.PI * 2, d = 110 + Math.random() * 130;
+      b.style.setProperty('--dx', Math.cos(ang) * d + 'px'); b.style.setProperty('--dy', Math.sin(ang) * d + 'px');
+      b.textContent = pick(['✦', '✧', '★', '·']);
+      box.appendChild(b); setTimeout(() => b.remove(), 1300);
+    }
+  }
+
+  let opening = false;
+  function openCard(){
+    if (busy) return;
+    $('cardOverlay').classList.remove('hidden');
+    if (s.card) { $('packStage').classList.add('hidden'); $('cardStage').classList.remove('hidden'); showCard(s.card); return; }
+    $('cardStage').classList.add('hidden'); $('packStage').classList.remove('hidden'); $('pack').className = 'pack';
+  }
+  $('pack').onclick = async () => {
+    if (opening || s.card) return;
+    opening = true;
+    const pk = $('pack');
+    pk.classList.add('shake'); await sleep(900);
+    pk.classList.remove('shake'); pk.classList.add('burst'); $('flash').classList.add('go'); await sleep(350);
+    s.card = makeCard(); save();
+    $('packStage').classList.add('hidden'); $('cardStage').classList.remove('hidden');
+    showCard(s.card); $('cardWrap').classList.add('reveal'); burst();
+    await sleep(1100);
+    $('cardWrap').classList.remove('reveal'); $('flash').classList.remove('go');
+    opening = false; render();
+  };
+  $('cardBtn').onclick = openCard;
+  $('cardDone').onclick = () => { $('cardOverlay').classList.add('hidden'); const d = $('devbar'); if (d) d.classList.add('hidden'); };
+
+  
+
+  
+
+  let armedReset = false;
+  $('resetBtn').onclick = () => {
+    if (s.card && !armedReset) { armedReset = true; $('resetBtn').textContent = '⚠ Tap again: this clears your card'; return; }
+    armedReset = false;
+    const keepTest = s.test;
+    s = fresh(); s.test = keepTest; save();
+    shown = s.pos;
+    render();
+  };
+
+  render();
+
+  // tick the countdown every second, and unlock automatically when it reaches zero
+  setInterval(() => {
+    if (busy || !$('introScreen').classList.contains('hidden')) return;
+    const l = isLocked();
+    if (l) $('lockTime').textContent = clock(msToUnlock());
+    if (l !== wasLocked) render();
+  }, 1000);
+})();
+</script>
+</body>
+</html>
